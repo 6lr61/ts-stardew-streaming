@@ -1,15 +1,76 @@
-import { watchFile } from "node:fs";
-import { readFile, readdir } from "node:fs/promises";
+import { readFileSync, watchFile } from "node:fs";
+import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { XMLParser } from "fast-xml-parser";
 
-interface StardewDate {
-  currentSeason: string;
+interface GameData {
+  SaveGame: {
+    player: {
+      basicShipped: {
+        item?: { key: { string: number | string }; value: { int: number } }[];
+      };
+      fishCaught: {
+        item?: {
+          key: { string: number | string };
+          value: { ArrayOfInt: number[] };
+        }[];
+      };
+      friendshipData: {
+        item?: {
+          key: { string: string };
+          value: {
+            Friendship: {
+              Points: number;
+              GiftsThisWeek: number;
+              GiftsToday: number;
+              LastGiftDate: StardewDate;
+              TalkedToToday: boolean;
+              ProposalRejected: boolean;
+              Status: string;
+              Proposer: number;
+              RoommateMarriage: boolean;
+            };
+          };
+        }[];
+      };
+      recipesCooked: {
+        item?: { key: { string: number | string }; value: { int: number } }[];
+      };
+      craftingRecipes: {
+        item?: { key: { string: string }; value: { int: number } }[];
+      };
+      mailReceived: {
+        string: string[];
+      };
+      combatLevel: number;
+      farmingLevel: number;
+      fishingLevel: number;
+      foragingLevel: number;
+      miningLevel: number;
+      stats: {
+        specificMonstersKilled: {
+          item?: { key: { string: string }; value: { int: number } }[];
+        };
+      };
+    };
+    goldenWalnutsFound: number;
+    constructedBuildings: { string: string[] };
+    currentSeason: "spring" | "summer" | "fall" | "winter";
+    dayOfMonth: string;
+    year: string;
+  };
+}
+
+export type SaveGame = GameData["SaveGame"];
+
+export interface StardewDate {
+  currentSeason: "spring" | "summer" | "fall" | "winter";
   dayOfMonth: string;
   year: string;
 }
 
-export async function listenForSaves(callback: (date: StardewDate) => void) {
+// TODO: Make it so that brand new save files are detected while running
+export async function listenForSaves(callback: (gameSave: GameData) => void) {
   console.log("Looking for saves in:", process.env.SAVE_DIR);
   const directoryContent = await readdir(process.env.SAVE_DIR, {
     withFileTypes: true,
@@ -25,21 +86,28 @@ export async function listenForSaves(callback: (date: StardewDate) => void) {
       console.debug("Path:", path);
 
       watchFile(path, { persistent: true }, async () => {
-        console.debug("fs.watchFile:", directory.name);
+        console.debug("Noticed change in:", directory.name);
 
-        readCurrentDate(path).then((date) => callback(date));
+        callback(parseGameSave(path));
       });
     });
 }
 
-async function readCurrentDate(path: string): Promise<StardewDate> {
-  const fileContent = await readFile(path);
+export function parseGameSave(path: string): GameData {
+  console.debug("Reading file:", path);
+  const fileContent = readFileSync(path);
   const parser = new XMLParser();
-  const data = parser.parse(fileContent);
+
+  console.debug("Parsing XML");
+  return parser.parse(fileContent);
+}
+
+export function readCurrentDate(gameData: GameData) {
+  const { currentSeason, dayOfMonth, year } = gameData.SaveGame;
 
   return {
-    currentSeason: data.SaveGame.currentSeason as string,
-    dayOfMonth: data.SaveGame.dayOfMonth as string,
-    year: data.SaveGame.year as string,
+    currentSeason,
+    dayOfMonth,
+    year,
   };
 }
