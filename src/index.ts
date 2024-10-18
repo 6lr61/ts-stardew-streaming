@@ -13,21 +13,21 @@ import {
   perfectionCounter,
 } from "./stardew/perfectionCounter.js";
 
-console.debug("Checking for access token in config.env");
+console.debug("Checking for access token in .env");
 
-const streamTitle = "Automatically Updating the Title? 🧑‍🌾💭";
+const streamTitle = "Finding the Trash Catalogue today!? 🗑️💢";
 
 if (!process.env.ACCESS_TOKEN) {
   console.error(
-    "Error: No access token in config.env! Please visit:",
+    "Error: No access token in .env! Please visit:",
     makeConnectLink(process.env.CLIENT_ID, process.env.REDIRECT_URI),
-    "and copy the access token into config.env"
+    "and copy the access token into .env"
   );
 
   exit(1);
 }
 
-console.debug("Validating token found in config.env");
+console.debug("Validating token found in .env");
 
 const tokenResponse = await validateToken(process.env.ACCESS_TOKEN);
 
